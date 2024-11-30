@@ -86,7 +86,7 @@ class TimeSeriesNN(nn.Module):
             assert inputs.shape[0]==targets.shape[0], 'inputs and targets should have the same batch size'
             assert inputs.shape[1:]==(self.input_len, self.input_channels), 'inputs should have shape (batch_size, input_len, input_channels)'
             assert targets.shape[1:]==(self.output_len, self.output_channels), 'targets should have shape (batch_size, output_len, output_channels)'
-            inputs, targets = torch.from_numpy(inputs).float(), torch.from_numpy(targets).float()
+            inputs, targets = torch.from_numpy(inputs).float().to(device), torch.from_numpy(targets).float().to(device)
             self.eval()  # switch to evaluation mode
             with torch.no_grad():
                 outputs = self(inputs)

@@ -1,65 +1,74 @@
-'''
-Not usable yet.
-'''
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-from .baseclass import TimeSeriesNN
 
-class Identical(TimeSeriesNN):
+class Identical():
     '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    (N, input_len, n_vars) -> (N, output_len, n_vars)
     Use the last time element of the input sequence as the predicted value of the output sequence.
-    Used in single step prediction. If output_len > 1, the output sequence has the same value in each time step.
+    Used in single step prediction typically. If output_len > 1, the output sequence has the same value in each time step.
     Can serve as a baseline.
 
     Required: input_channels == output_channels
     '''
-    def __init__(self, input_len, output_len, input_channels, output_channels, *args, **kwargs): # For compatibility, we allow extra arguments here, but be sure they are not used.
-        assert input_channels == output_channels, "input_channels should be equal to output_channels"
-        super().__init__(input_len, output_len, input_channels, output_channels)
-        self.fc=nn.Linear(1,1) # placeholder
+    def __init__(self, output_len=1):
+        self.output_len = output_len
 
-    def forward(self, x):
-        x_last_step = x[:, -1, :].view(x.shape[0], 1, x.shape[2]) # (batch_size, 1, input_channels)
-        x = x_last_step.repeat(1, self.output_len, 1) # (batch_size, output_len, input_channels)
-        return x
-
-
-class ExponentialMovingAverage(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
-    Use the exponential moving average of the input sequence as the predicted value of the output sequence.
-    Used in single step prediction. If output_len > 1, the output sequence has the same value in each time step.
-    The channels are independently predicted.
-    Can serve as a baseline.
-
-    Required: input_channels == output_channels
-    '''
-    def __init__(self, input_len, output_len, input_channels, output_channels, *args,
-                alpha=None,
-                **kwargs
-                ): # For compatibility, we allow extra arguments here, but be sure they are not used.
-        assert input_channels == output_channels, "input_channels should be equal to output_channels"
-        super().__init__(input_len, output_len, input_channels, output_channels)
-        self.alpha = 2/(1+input_len) if alpha is None else alpha # If alpha is given, use the specified value. Otherwise, use the formula proposed by researchers.
-        self.fc=nn.Linear(1,1) # placeholder
-
-    def forward(self, x): # x: (batch_size, input_len, input_channels)
-        ema = torch.zeros_like(x) # create a tensor with the same shape as the input # 创建与输入相同形状的数组
-        ema[:, 0, :] = x[:, 0, :] # use the first value of the input sequence as the initial value of EMA # 使用输入序列的第一个值作为 EMA 的初始值
-        for t in range(1, self.input_len):
-            ema[:, t, :] = self.alpha * x[:, t, :] + (1 - self.alpha) * ema[:, t - 1, :]
-        last_step_ema = ema[:, -1, :].view(x.shape[0], 1, x.shape[2]) # use the last step of EMA as the predicted value of the output sequence # 取出最后一个时间步的 EMA 值作为输出序列的预测值
-        output = last_step_ema.repeat(1, self.output_len, 1) # (batch_size, output_len, input_channels)
+    def __call__(self, x):
+        # x: (N, input_len, n_vars)
+        assert type(x)==np.ndarray and x.ndim==3, "Input should be a 3-d numpy array"
+        x_last_step = x[:, -1, :].reshape(x.shape[0], 1, x.shape[2]) # (N, 1, n_vars)
+        output = np.tile(x_last_step, reps=(1, self.output_len, 1)) # (N, output_len, n_vars)
         return output
 
-class ARIMA(TimeSeriesNN):
+class ExponentialMovingAverage():
+    '''
+    (N, input_len, n_vars) -> (N, output_len, n_vars)
+    Use the exponential moving average of the input sequence as the predicted value of the output sequence.
+    Used in single step prediction typically. If output_len > 1, the output sequence has the same value in each time step.
+    The channels are independently predicted.
+    Can serve as a baseline.
+    '''
+    def __init__(self, output_len=1, alpha=None):
+        self.output_len = output_len
+        self.alpha = alpha
+
+    def __call__(self, x):
+        # x: (N, input_len, n_vars)
+        assert type(x)==np.ndarray and x.ndim==3, "Input should be a 3-d numpy array"
+        input_len = x.shape[1]
+        if self.alpha is None:
+            alpha = 2/(1+input_len)
+        else: # If alpha is given, use the specified value.
+            alpha=self.alpha
+        ema = np.zeros_like(x) # create a tensor with the same shape as the input
+        ema[:, 0, :] = x[:, 0, :] # use the first value of the input sequence as the initial value of EMA
+        for t in range(1, input_len):
+            ema[:, t, :] = alpha * x[:, t, :] + (1 - alpha) * ema[:, t - 1, :]
+        last_step_ema = ema[:, -1, :].reshape(x.shape[0], 1, x.shape[2]) # use the last step of EMA as the predicted value of the output sequence
+        output = np.tile(last_step_ema, reps=(1, self.output_len, 1)) # (N, output_len, n_vars)
+        return output
+
+class ARIMA():
     pass
 
 
-class SVR(TimeSeriesNN):#不能用，待完善
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SVR():#不能用，待完善
     '''
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
     Support Vector Regression

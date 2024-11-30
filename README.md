@@ -8,7 +8,7 @@ Annotations are in both English and Chinese. A large proportion is auto-generate
 
 ---
 
-`gas_data_prediction` directory contains codes for multi-variate time series prediction of flight data.
+`gas_data_prediction` directory contains codes for multi-variate time series prediction of gas data.
 
 ---
 

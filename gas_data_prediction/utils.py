@@ -219,86 +219,74 @@ def train(MODEL, train_loader, val_loader, optimizer,
         return (epoch_time_list, train_loss_list, train_metric_list, val_loss_list, val_metric_list)
 
 
-def plot_predictions(MODEL, X_grouped, Y_grouped, var_names, paths,
-                    iii=6,
-                    figsize=(16,12),
-                    device='cpu'
+def get_pred_true_pairs_with_Tensor(model,X,Y):
+    '''
+    Predict on a given dataset and return the predicted and true values in torch Tensor format.
+
+    :param model: a neural network model (torch.nn.Module)
+    :param X: numpy array of shape (n_samples, input_len, n_input_vars)
+    :param Y: numpy array of shape (n_samples, output_len, n_output_vars)
+
+    :return: Y_pred: numpy array of shape (n_timesteps, n_output_vars)
+    :return: Y_true: numpy array of shape (n_timesteps, n_output_vars)
+    '''
+    assert type(X)==np.ndarray and X.ndim==3, "X should be a 3D numpy array"
+    assert type(Y)==np.ndarray and Y.ndim==3, "Y should be a 3D numpy array"
+    assert X.shape[0]==Y.shape[0], "X and Y should have the same number of samples"
+
+    device=next(model.parameters()).device
+    X,Y=torch.Tensor(X).to(device),torch.Tensor(Y).to(device)
+    n_output_vars=Y.shape[2]
+    Y_pred_Tensor=model(X).reshape(-1,n_output_vars) # concatenate the predictions by time order
+    Y_true_Tensor=Y.reshape(-1,n_output_vars) # concatenate the true values by time order
+    Y_pred, Y_true = Y_pred_Tensor.detach().cpu().numpy(), Y_true_Tensor.detach().cpu().numpy()
+    return Y_pred, Y_true # shape: (n_timesteps, n_output_vars)
+
+
+def get_pred_true_pairs(model,X,Y):
+    '''
+    Predict on a given dataset and return the predicted and true values in a numpy array.
+
+    :param model: the model to be used
+    :param X: numpy array of shape (n_samples, input_len, n_vars)
+    :param Y: numpy array of shape (n_samples, output_len, n_vars)
+
+    :return: Y_pred: numpy array of shape (n_timesteps, n_vars)
+    :return: Y_true: numpy array of shape (n_timesteps, n_vars)
+    '''
+    assert type(X)==np.ndarray and X.ndim==3, "X should be a 3D numpy array"
+    assert type(Y)==np.ndarray and Y.ndim==3, "Y should be a 3D numpy array"
+    assert X.shape[0]==Y.shape[0], "X and Y should have the same number of samples"
+    assert X.shape[2]==Y.shape[2], "X and Y should have the same number of variables (channels)"
+
+    n_vars=X.shape[2]
+    Y_pred=model(X).reshape(-1,n_vars) # concatenate the predictions by time order
+    Y_true=Y.reshape(-1,n_vars) # concatenate the true values by time order
+    return Y_pred, Y_true # shape: (n_timesteps, n_vars)
+
+
+def visualize_var(Y_pred,Y_true,var_idx,var_names,var_units,
+                    data_name="0",
+                    var_mean=None,
+                    var_std_dev=None,
+                    plot_residual=False,
+                    rescale=False
                     ):
     '''
-    Plot the predictions of the model on a given mat file.
-    Parameters:
-    - MODEL: torch.nn.Module, the trained model
-    - X_grouped: list of (list of (input_length,len(var_names)) numpy array), the input data grouped by mat file
-    - Y_grouped: list of (list of (output_length,len(var_names)) numpy array), the output data grouped by mat file
-    - var_names: list of strings, the names of the variables
-    - paths: list of strings, the paths of the mat files
-    - iii: int, the index of the mat file to be plotted
-    - figsize: tuple of int, the size of the figure
-    Return:
-    - None
+    Y_pred: numpy array of shape (n_samples, n_vars)
+    Y_true: numpy array of shape (n_samples, n_vars)
+    var_idx: index of the variable to be visualized
+    
+    plot_residual: whether to plot the residual or the actual values
+    rescale: whether to rescale the values to their original scale or not
     '''
-    # iii=43 # 要在某个mat文件上做预测,选中mat编号(iii)（建议落在测试集对应的编号范围内）
-
-    X_to_predict=[] # 作为输入的真实数据
-    Y_to_predict=[] # 待预测的真实数据
-
-    for i in range(len(X_grouped[iii])):
-        X_to_predict.append(X_grouped[iii][i])
-    X_to_predict=np.array(X_to_predict) # X_to_predict: numpy array. Shape: (num_batches, input_len, input_channels)
-
-    for i in range(len(Y_grouped[iii])):
-        Y_to_predict.append(Y_grouped[iii][i])
-    Y_to_predict=np.array(Y_to_predict) # Y_to_predict: numpy array. Shape: (num_batches, output_len, output_channels):
-
-    if hasattr(MODEL, 'label_len') and MODEL.label_len > 0: # 如果模型含有label_len属性，说明前向传播过程需要解码器输入
-        label_len=MODEL.label_len
-        output_len=MODEL.output_len
-        pred_len=output_len-label_len
-        dec_inp = torch.zeros_like(torch.Tensor(Y_to_predict[:, -pred_len:, :])).float().to(device)
-        dec_inp = torch.cat([torch.Tensor(Y_to_predict[:, :label_len, :]).to(device), dec_inp], dim=1).float().to(device)
-        Y_to_predict=Y_to_predict[:, -pred_len:, :] # 取待预测时间范围内的数据
-        Y_predicted=MODEL(torch.Tensor(X_to_predict).to(device), dec_inp).cpu().detach().numpy() # 根据X_to_predict预测到的数据
-    else: # 如果模型不含有label_len属性，说明前向传播过程不需要解码器输入
-        Y_predicted=MODEL(torch.Tensor(X_to_predict).to(device)).cpu().detach().numpy() # 根据X_to_predict预测到的数据
-
-    output_channels=Y_predicted.shape[2]
-    Y_predicted_flatten=Y_predicted.reshape(-1,output_channels)
-    Y_to_predict_flatten=Y_to_predict.reshape(-1,output_channels)
-    loss=np.mean((Y_predicted_flatten-Y_to_predict_flatten)**2) # 计算预测误差
-
-    plt.figure(figsize=figsize) # figsize is specified in the function parameter
-    plt.suptitle('Time Series Prediction on {}\n Loss: {:.4f}'.format(paths[iii][-30:], loss))
-    for var_name in var_names:
-        var_idx=var_names.index(var_name)
-        plt.subplot(4, 4, var_idx+1)
-        plt.plot(Y_predicted_flatten[:,var_idx], alpha=0.9, c='red')
-        plt.plot(Y_to_predict_flatten[:,var_idx], alpha=0.6, c='blue')
-        plt.legend(['predict', 'true'], loc='upper right')
-        plt.title(var_name)
-    plt.tight_layout(h_pad=2)
-    #plt.savefig("", bbox_inches='tight')
-    plt.show()
-
-
-def plot_predictions(MODEL, X_grouped, Y_grouped, var_names, paths,
-                    iii=6,
-                    figsize=(16,12),
-                    device='cpu'
-                    ):
-    '''
-    Plot the predictions of the model on a given mat file.
-    Parameters:
-    - MODEL: torch.nn.Module, the trained model
-    - X_grouped: list of (list of (input_length,len(var_names)) numpy array), the input data grouped by mat file
-    - Y_grouped: list of (list of (output_length,len(var_names)) numpy array), the output data grouped by mat file
-    - var_names: list of strings, the names of the variables
-    - paths: list of strings, the paths of the data files
-    - iii: int, the index of the mat file to be plotted
-    - figsize: tuple of int, the size of the figure
-    Return:
-    - None
-    '''
-    # iii=43 # 要在某个mat文件上做预测,选中mat编号(iii)（建议落在测试集对应的编号范围内）
+    assert type(Y_pred)==np.ndarray and Y_pred.ndim==2, "Y_pred should be a 2D numpy array"
+    assert type(Y_true)==np.ndarray and Y_true.ndim==2, "Y_true should be a 2D numpy array"
+    assert Y_pred.shape==Y_true.shape, "Y_pred and Y_true should have the same shape"
+    assert len(var_names)==len(var_units), "var_names and var_units should have the same length"
+    assert var_idx in range(len(var_names)), "var_idx should be within the range of var_names"
+    assert plot_residual in [True, False], "plot_residual should be either True or False"
+    assert rescale in [True, False], "rescale should be either True or False"
 
     try:
         from matplotlib.font_manager import FontProperties
@@ -307,48 +295,41 @@ def plot_predictions(MODEL, X_grouped, Y_grouped, var_names, paths,
         font3 = FontProperties(fname=r"C:\\Windows\\Fonts\\STFANGSO.ttf", size=10)
         font4 = FontProperties(fname=r"C:\\Windows\\Fonts\\STFANGSO.ttf", size=7)
     except:
-        raise Exception("请确保您的系统为Windows系统，并安装了STFANGSO.ttf字体")
+        raise Exception('为了中文的正常显示，请确保您的系统为Windows系统，并安装了STFANGSO.ttf字体。\n通常该字体的路径为"C:\\Windows\\Fonts\\STFANGSO.ttf"')
 
-    X_to_predict=[] # 作为输入的真实数据
-    Y_to_predict=[] # 待预测的真实数据
+    y_true=Y_true[:,var_idx] # shape: (n_samples,)
+    y_pred=Y_pred[:,var_idx] # shape: (n_samples,)
+    y_mean=var_mean[var_idx] # float
+    y_std_dev=var_std_dev[var_idx] # float
+    plt.figure(figsize=(12,5))
+    
+    if plot_residual==False:
+        if rescale == False:
+            plt.plot(y_true,c='b',label='True')
+            plt.plot(y_pred,c='r',label='Predicted')
+            plt.ylabel("Normalized Value")
+        elif rescale == True:
+            plt.plot(y_true*y_std_dev+y_mean,c='b',label='True')
+            plt.plot(y_pred*y_std_dev+y_mean,c='r',label='Predicted')
+            plt.ylabel(var_units[var_idx])
+    elif plot_residual==True:
+        plt.axhline(y=0)
+        if rescale == False:
+            plt.plot(y_true-y_pred,c='b',label='Residual')
+            plt.ylabel("Normalized Value")
+        elif rescale == True:
+            plt.plot((y_true-y_pred)*y_std_dev,c='b',label='Residual')
+            plt.ylabel(var_units[var_idx])
 
-    for i in range(len(X_grouped[iii])):
-        X_to_predict.append(X_grouped[iii][i])
-    X_to_predict=np.array(X_to_predict) # X_to_predict: numpy array. Shape: (num_batches, input_len, input_channels)
-
-    for i in range(len(Y_grouped[iii])):
-        Y_to_predict.append(Y_grouped[iii][i])
-    Y_to_predict=np.array(Y_to_predict) # Y_to_predict: numpy array. Shape: (num_batches, output_len, output_channels):
-
-    if hasattr(MODEL, 'label_len') and MODEL.label_len > 0: # 如果模型含有label_len属性，说明前向传播过程需要解码器输入
-        label_len=MODEL.label_len
-        output_len=MODEL.output_len
-        pred_len=output_len-label_len
-        dec_inp = torch.zeros_like(torch.Tensor(Y_to_predict[:, -pred_len:, :])).float().to(device)
-        dec_inp = torch.cat([torch.Tensor(Y_to_predict[:, :label_len, :]).to(device), dec_inp], dim=1).float().to(device)
-        Y_to_predict=Y_to_predict[:, -pred_len:, :] # 取待预测时间范围内的数据
-        Y_predicted=MODEL(torch.Tensor(X_to_predict).to(device), dec_inp).cpu().detach().numpy() # 根据X_to_predict预测到的数据
-    else: # 如果模型不含有label_len属性，说明前向传播过程不需要解码器输入
-        Y_predicted=MODEL(torch.Tensor(X_to_predict).to(device)).cpu().detach().numpy() # 根据X_to_predict预测到的数据
-
-    output_channels=Y_predicted.shape[2]
-    Y_predicted_flatten=Y_predicted.reshape(-1,output_channels)
-    Y_to_predict_flatten=Y_to_predict.reshape(-1,output_channels)
-    loss=np.mean((Y_predicted_flatten-Y_to_predict_flatten)**2) # 计算预测误差
-
-    plt.figure(figsize=figsize) # figsize is specified in the function parameter
-    import os
-    plt.suptitle('Time Series Prediction on {}\n Loss: {:.4f}'.format(
-                os.path.basename(paths[iii]), loss),
-                fontproperties=font1)
-    for var_name in var_names:
-        var_idx=var_names.index(var_name)
-        plt.subplot(4, 4, var_idx+1)
-        plt.plot(Y_predicted_flatten[:,var_idx], alpha=0.9, c='red')
-        plt.plot(Y_to_predict_flatten[:,var_idx], alpha=0.6, c='blue')
-        plt.legend(['predict', 'true'], loc='upper right')
-        plt.title(var_name, fontproperties=font2)
-    plt.tight_layout(h_pad=2)
-    #plt.savefig("", bbox_inches='tight')
+    title_str="Prediction of {} on {}".format(var_names[var_idx],data_name)
+    if rescale == False:
+        title_str+="\nRMSE: {:.6f}".format(np.sqrt(((y_true-y_pred)**2).mean()))
+        title_str+="\nMAE: {:.6f}".format(np.abs(y_true-y_pred).mean())
+    elif rescale == True:
+        title_str+="\nRMSE: {:.6f}".format(np.sqrt((((y_true-y_pred)*y_std_dev)**2).mean()))
+        title_str+="\nMAE: {:.6f}".format(np.abs((y_true-y_pred)*y_std_dev).mean())
+    plt.title(title_str,fontproperties=font2)
+    
+    plt.xlabel('Time')
+    plt.legend()
     plt.show()
-
