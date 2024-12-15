@@ -1,0 +1,41 @@
+{
+    "model_name": "SVR",
+    "input_len": 3,
+    "output_len": 1,
+    "input_channels": 15,
+    "output_channels": 7,
+    "overlap": 1,
+    "input variables": [
+        "\u4e3b\u84b8\u6c7d\u6d41\u91cf\u8ba1\u7b97\u503c",
+        "\u9505\u7089\u5929\u7136\u6c14\u8fdb\u6c14\u6d41\u91cf",
+        "\u9505\u7089\u5929\u7136\u6c14\u8fdb\u6c14\u6e29\u5ea6",
+        "\u9505\u7089\u5929\u7136\u6c14\u8fdb\u6c14\u538b\u529b",
+        "\u9f13\u98ce\u673a\u51fa\u53e3\u6e29\u5ea6",
+        "\u9f13\u98ce\u673a\u51fa\u53e3\u538b\u529b",
+        "\u9f13\u98ce\u673a\u53d8\u9891\u5668\u8f93\u51fa\u53cd\u9988",
+        "\u9f13\u98ce\u673a\u53d8\u9891\u5668\u7535\u6d41\u53cd\u9988",
+        "\u51b7\u51dd\u5668\u51fa\u53e3\u70df\u6c14\u8c03\u8282\u9600\u53cd\u9988",
+        "SWY\u5927\u6c14\u538b",
+        "SWY\u5929\u6c14\u6e29\u5ea6",
+        "SWY\u7a7a\u6c14\u6e7f\u5ea6",
+        "SWY\u6e7f\u7403\u6e29\u5ea6",
+        "\u4e3b\u84b8\u6c7d\u6e29\u5ea6\uff08\u84b8\u6c7d\u96c6\u7bb1\u51fa\u53e3\u6e29\u5ea6\uff09",
+        "\u4e3b\u84b8\u6c7d\u538b\u529b\uff08\u84b8\u6c7d\u96c6\u7bb1\u51fa\u53e3\u538b\u529b\uff09"
+    ],
+    "output variables": [
+        "\u70df\u6c14\u542b\u6c27\u91cf\uff08CEMS\uff09",
+        "NOX\u6d53\u5ea6",
+        "\u4e00\u6c27\u5316\u78b3",
+        "\u70df\u6c14\u6e7f\u5ea6\uff08CEMS\uff09",
+        "\u70df\u6c14\u538b\u529b\uff08CEMS\uff09",
+        "\u70df\u6c14\u6e29\u5ea6\uff08CEMS\uff09",
+        "\u7089\u819b\u51fa\u53e3\u70df\u6c14\u538b\u529b"
+    ],
+    "C": 1.0,
+    "epsilon": 0.0,
+    "nu": 0.5,
+    "kernel": "linear",
+    "degree": 3,
+    "tol": 0.001,
+    "max_iter": -1
+}

@@ -45,14 +45,16 @@ class SVRBaseClass:
 
 class SVR(SVRBaseClass):
     def __init__(self, input_len, output_len, input_channels, output_channels,
-                    kernel='rbf', # 'linear', 'poly', 'rbf', 'sigmoid'
                     C=1.0,
-                    tol=0.001,
                     epsilon=0.1,
+                    kernel='rbf', # 'linear', 'poly', 'rbf', 'sigmoid'
+                    degree=3,
+                    tol=0.001,
+                    max_iter=-1,
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.svm import SVR as sklearn_SVR
-        self.models = [sklearn_SVR(kernel=kernel, C=C, tol=tol, epsilon=epsilon) 
+        self.models = [sklearn_SVR(kernel=kernel, C=C, epsilon=epsilon, degree=degree, tol=tol, max_iter=max_iter) 
                         for _ in range(output_len*output_channels)]
 
 class LinearSVR(SVRBaseClass):
@@ -60,23 +62,26 @@ class LinearSVR(SVRBaseClass):
                     C=1.0,
                     epsilon=0.0,
                     tol=0.001,
+                    max_iter=-1,
                     loss='epsilon_insensitive',
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.svm import LinearSVR as sklearn_LinearSVR
-        self.models = [sklearn_LinearSVR(C=C, epsilon=epsilon, tol=tol, loss=loss)
+        self.models = [sklearn_LinearSVR(C=C, epsilon=epsilon, loss=loss, tol=tol, max_iter=max_iter)
                         for _ in range(output_len*output_channels)]
 
 class NuSVR(SVRBaseClass):
     def __init__(self, input_len, output_len, input_channels, output_channels,
-                    kernel='rbf', # 'linear', 'poly', 'rbf', 'sigmoid'
                     C=1.0,
-                    tol=0.001,
                     nu=0.5,
+                    kernel='rbf', # 'linear', 'poly', 'rbf', 'sigmoid'
+                    degree=3,
+                    tol=0.001,
+                    max_iter=-1,
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.svm import NuSVR as sklearn_NuSVR
-        self.models = [sklearn_NuSVR(kernel=kernel, C=C, tol=tol, nu=nu)
+        self.models = [sklearn_NuSVR(kernel=kernel, C=C, nu=nu, degree=degree, tol=tol, max_iter=max_iter)
                         for _ in range(output_len*output_channels)]
 
 

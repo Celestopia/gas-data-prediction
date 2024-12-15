@@ -19,11 +19,11 @@ class MLP(TimeSeriesNN):
         self.fc3 = nn.Linear(32, output_channels*output_len)
         self.pool1 = nn.MaxPool1d(kernel_size=2)
         self.pool2 = nn.MaxPool1d(kernel_size=2)
-        self.dropout1 = nn.Dropout(p=0.2)
-        self.dropout2 = nn.Dropout(p=0.2)
+        self.dropout1 = nn.Dropout(p=dropout)
+        self.dropout2 = nn.Dropout(p=dropout)
 
     def forward(self, x):
-        x=x.view(x.size(0), self.input_len*self.input_channels) # (batch_size, input_len, input_channels) -> (batch_size, input_len*input_channels)
+        x=x.reshape(x.size(0), self.input_len*self.input_channels) # (batch_size, input_len, input_channels) -> (batch_size, input_len*input_channels)
         x=self.fc1(x) # (batch_size, input_len*input_channels) -> (batch_size, 256)
         x=nn.functional.relu(x)
         x=self.pool1(x) # (batch_size, 256) -> (batch_size, 128)
@@ -33,5 +33,5 @@ class MLP(TimeSeriesNN):
         x=self.pool2(x) # (batch_size, 64) -> (batch_size, 32)
         x=self.dropout2(x)
         x=self.fc3(x) # (batch_size, 32) -> (batch_size, output_channels*output_len)
-        x = x.view(-1, self.output_len, self.output_channels) # (batch_size, output_channels*output_len) -> (batch_size, output_len, output_channels)
+        x = x.reshape(-1, self.output_len, self.output_channels) # (batch_size, output_channels*output_len) -> (batch_size, output_len, output_channels)
         return x

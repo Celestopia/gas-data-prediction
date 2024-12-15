@@ -9,7 +9,7 @@ class Identical():
 
     Required: input_channels == output_channels
     '''
-    def __init__(self, output_len=1):
+    def __init__(self, output_len=1, *args, **kwargs): # For compatibility, we allow extra arguments here, but be sure they are not used.
         self.output_len = output_len
 
     def __call__(self, x):
@@ -27,7 +27,7 @@ class ExponentialMovingAverage():
     The channels are independently predicted.
     Can serve as a baseline.
     '''
-    def __init__(self, output_len=1, alpha=None):
+    def __init__(self, output_len=1, alpha=None, *args, **kwargs): # For compatibility, we allow extra arguments here, but be sure they are not used.
         self.output_len = output_len
         self.alpha = alpha
 
