@@ -13,7 +13,9 @@ class GasData:
         @staticmethod
         def train_test_split(data, train_ratio=0.8, test_ratio=0.2):
             '''
-            Split the dataset into training and testing sets.
+            Split the dataset into training and testing sets, with the ratio specified by `train_ratio` and `test_ratio`.
+
+            Note: The dataset is split by the number of series in the dataset, not the total length of the time series.
             '''
             assert train_ratio+test_ratio<=1.0, "train_ratio+test_ratio must be <= 1.0"
             assert type(data)==list, "`data` must be a list"
@@ -284,6 +286,9 @@ class GasData:
 
 
 def get_XY_loaders(X, Y,
+                    train_ratio=0.7,
+                    val_ratio=0.1,
+                    test_ratio=0.2,
                     batch_size=32,
                     verbose=1
                     ):
@@ -294,6 +299,9 @@ def get_XY_loaders(X, Y,
     Parameters:
     - X: numpy array. Shape: (num_samples, input_len, input_channels)
     - Y: numpy array. Shape: (num_samples, output_len, output_channels)
+    - train_ratio: float. The proportion of training samples.
+    - val_ratio: float. The proportion of validation samples.
+    - test_ratio: float. The proportion of testing samples.
     - batch_size: int.
     - verbose: int. Whether to print messages. If 1, print messages.
     Return:
@@ -322,9 +330,6 @@ def get_XY_loaders(X, Y,
     output_len=Y.shape[1]
     output_channels=Y.shape[2]
 
-    train_ratio=0.7 # The proportion of training samples # 训练集占比
-    val_ratio=0.1 # The proportion of validation samples # 验证集占比
-    test_ratio=0.2 # The proportion of testing samples # 测试集占比
     assert train_ratio+val_ratio+test_ratio<=1.0
 
     num_train=int(train_ratio*num_samples)
@@ -346,7 +351,10 @@ def get_XY_loaders(X, Y,
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    if num_test>0:
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    else:
+        test_loader=None
 
     if verbose==1:
         print(f"Train dataset size: X: ({num_train}, {input_len}, {input_channels}); Y: ({num_train}, {output_len}, {output_channels})")

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # 专用于已有文件的一个临时封装函数
-def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.xlsx', sheet_name='稳定运行数据段',
+def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.xlsx', sheet_name='1-2月份数据',
                 input_var_names=[
                     "主蒸汽流量计算值",
                     "锅炉天然气进气流量",
@@ -17,8 +17,8 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
                     "SWY天气温度",
                     "SWY空气湿度",
                     'SWY湿球温度',
-                    "主蒸汽温度(蒸汽集箱出口温度）",
-                    "主蒸汽压力(蒸汽集箱出口压力）",
+                    "主蒸汽温度（蒸汽集箱出口温度）",
+                    "主蒸汽压力（蒸汽集箱出口压力）",
                 ],
                 output_var_names=[
                     #"烟气含氧量（CEMS）",
@@ -74,8 +74,8 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
         'SWY天气温度',
         'SWY空气湿度',
         'SWY湿球温度',
-        '主蒸汽温度(蒸汽集箱出口温度）',
-        '主蒸汽压力(蒸汽集箱出口压力）',
+        '主蒸汽温度（蒸汽集箱出口温度）',
+        '主蒸汽压力（蒸汽集箱出口压力）',
         '分汽缸温度',
         '分汽缸压力',
         '分汽缸出口至DN400蒸汽温度',
@@ -93,6 +93,7 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
         "NO浓度": "mg/Nm3",
         "NO2浓度": "mg/Nm3",
         "NOX浓度": "mg/Nm3",
+        "NOX标干浓度": "mg/Nm3",
         "烟气湿度（CEMS）": "%",
         "烟气压力（CEMS）": "Pa",
         "烟气温度（CEMS）": "℃",
@@ -110,8 +111,8 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
         "SWY天气温度": "℃",
         "SWY空气湿度": "%",
         'SWY湿球温度': "℃",
-        "主蒸汽温度(蒸汽集箱出口温度）": "℃",
-        "主蒸汽压力(蒸汽集箱出口压力）": "MPa",
+        "主蒸汽温度（蒸汽集箱出口温度）": "℃",
+        "主蒸汽压力（蒸汽集箱出口压力）": "MPa",
         "分汽缸温度": "℃",
         "分汽缸压力": "MPa",
         '分汽缸出口至DN400蒸汽温度': "℃",
@@ -144,6 +145,8 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
         #data_np[1000:,:],
         ]'''
     print("data_np.shape:", data_np.shape)
+    print("DATA[0].shape:", DATA[0].shape)
+    print("DATA[-1].shape:", DATA[-1].shape)
 
     return DATA, \
             (var_names, var_units), \
