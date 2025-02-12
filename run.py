@@ -30,7 +30,8 @@ input_var_names_list=[
                 "主蒸汽温度（蒸汽集箱出口温度）",
                 "主蒸汽压力（蒸汽集箱出口压力）",
                 ]
-
+input_var_names_list.remove("锅炉天然气进气压力")
+input_var_names_list.remove("SWY大气压")
 
 input_var_names=' '.join(input_var_names_list)
 output_var_names_list=[
@@ -53,7 +54,7 @@ overlap = 1
 model_name = "SVR"
 
 # SVR settings
-C=1.0
+C=0.3
 epsilon=0
 nu=0.5
 kernel="linear"
@@ -63,10 +64,17 @@ degree=3
 l2_ratio=0.1
 l1_ratio=0.1
 
+# Ensemble settings
+n_estimators=500
+max_depth=12
+min_samples_split=2
+min_samples_leaf=1
+max_features='sqrt'
+
 # --- Training settings ---------------------------------------------
-seed=2024+1216
 
 # General settings
+seed=2024+1216
 device="cpu"
 
 # SVR settings
@@ -79,14 +87,17 @@ learning_rate=0.001
 batch_size=32
 num_epochs=100
 
+# Ensemble settings
+ensemble_learning_rate=0.1
+
 # --- Saving Settings ----------------------------------------------------
 save_record=1
 figsize="18 12"
 record_directory="./_results"
 
 save_log=1
-log_path="./_results/_SVR_log.xlsx"
-metadata=''
+log_path="./_results/_log.xlsx"
+metadata='Removed variables: SWY大气压, 锅炉天然气进气压力'
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -116,8 +127,16 @@ def run():
     command+=f' --kernel "{kernel}"'
     command+=f' --degree {degree}'
 
+    # LR settings
     command+=f' --l2_ratio {l2_ratio}'
     command+=f' --l1_ratio {l1_ratio}'
+
+    # Ensemble settings
+    command+=f' --n_estimators {n_estimators}'
+    command+=f' --max_depth {max_depth}'
+    command+=f' --min_samples_split {min_samples_split}'
+    command+=f' --min_samples_leaf {min_samples_leaf}'
+    command+=f' --max_features "{max_features}"'
 
     # --- Training settings ---------------------------------------------------
     # General settings
@@ -133,6 +152,9 @@ def run():
     command+=f' --learning_rate {learning_rate}'
     command+=f' --batch_size {batch_size}'
     command+=f' --num_epochs {num_epochs}'
+
+    # Ensemble settings
+    command+=f' --ensemble_learning_rate {ensemble_learning_rate}'
 
     # --- Saving Settings -------------------------------------------------------
     command+=f' --figsize "{figsize}"'
@@ -160,5 +182,21 @@ for i, names in enumerate(itertools.combinations(input_var_names_list, 13)):
     metadata='Discarded variables: '+' '.join(metadata)
     print(f'--------------{i+1}-th combination------------------')
     run()'''
-
-
+'''
+for n in ['RandomForest', 'ExtraTrees', 'AdaBoost', 'Bagging', 'GradientBoosting']:
+    model_name=n
+    for l in range(1,8):
+        input_len=l
+        run()'''
+'''
+for i in [1,2,3,4]:
+    input_len=i
+    for c in [0.1, 0.3, 1, 3, 10]:
+        C=c
+        for k in ['linear', 'poly', 'rbf', 'sigmoid']:
+            kernel=k
+            run()'''
+'''
+for n in ['RandomForest', 'ExtraTrees', 'AdaBoost', 'Bagging', 'GradientBoosting']:
+    model_name=n
+    run()'''

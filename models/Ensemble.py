@@ -13,7 +13,7 @@ class EnsembleBaseClass:
             warnings.warn("""
                             This Ensemble model is suggested for single-step prediction only.\n
                             For multi-step prediction, it is not recommended,\n
-                            because the implementation is to train multiple SVR models for each output variable (scalar),\n
+                            because the implementation is to train multiple Ensemble models for each output variable (scalar),\n
                             and the number of output variables is a product of `output_len` and `output_channels`).\n
                             """)
 
@@ -44,30 +44,76 @@ class EnsembleBaseClass:
 
 
 class RandomForestRegressor(EnsembleBaseClass):
+    '''
+    A meta estimator that fits a number of decision tree regressors on various sub-samples of the dataset.
+    '''
     def __init__(self, input_len, output_len, input_channels, output_channels,
                     n_estimators=100,
                     max_depth=5,
-                    random_state=0
+                    min_samples_split=2,
+                    min_samples_leaf=1,
+                    max_features='sqrt',
+                    random_state=0,
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.ensemble import RandomForestRegressor as sklearn_RandomForestRegressor
-        self.models = [sklearn_RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=random_state)
+        self.models = [sklearn_RandomForestRegressor(n_estimators=n_estimators,
+                                                    max_depth=max_depth,
+                                                    min_samples_split=min_samples_split,
+                                                    min_samples_leaf=min_samples_leaf,
+                                                    max_features=max_features,
+                                                    random_state=random_state,)
                         for _ in range(output_len*output_channels)]
 
-class AdaBoostRegressor(EnsembleBaseClass):
+
+class ExtraTreesRegressor(EnsembleBaseClass):
+    '''
+    A meta estimator that fits a number of randomized decision trees (a.k.a. extra-trees) on various sub-samples of the dataset.
+    '''
     def __init__(self, input_len, output_len, input_channels, output_channels,
+                    n_estimators=100,
+                    max_depth=None,
+                    min_samples_split=2,
+                    min_samples_leaf=1,
+                    max_features='sqrt',
+                    random_state=0,
+                    ):
+        super().__init__(input_len, output_len, input_channels, output_channels)
+        from sklearn.ensemble import ExtraTreesRegressor as sklearn_ExtraTreesRegressor
+        self.models = [sklearn_ExtraTreesRegressor(n_estimators=n_estimators,
+                                                    max_depth=max_depth,
+                                                    min_samples_split=min_samples_split,
+                                                    min_samples_leaf=min_samples_leaf,
+                                                    max_features=max_features,
+                                                    random_state=random_state,)
+                        for _ in range(output_len*output_channels)]
+
+
+class AdaBoostRegressor(EnsembleBaseClass):
+    '''
+    Meta Regressor. Default base estimator is DecisionTreeRegressor.
+    '''
+    def __init__(self, input_len, output_len, input_channels, output_channels,
+                    estimator=None,
                     n_estimators=50,
-                    learning_rate=1.0,
+                    learning_rate=0.1,
                     random_state=0
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.ensemble import AdaBoostRegressor as sklearn_AdaBoostRegressor
-        self.models = [sklearn_AdaBoostRegressor(n_estimators=n_estimators, learning_rate=learning_rate, random_state=random_state)
+        self.models = [sklearn_AdaBoostRegressor(estimator=estimator,
+                                                    n_estimators=n_estimators,
+                                                    learning_rate=learning_rate,
+                                                    random_state=random_state)
                         for _ in range(output_len*output_channels)]
 
 
 class BaggingRegressor(EnsembleBaseClass):
+    '''
+    Meta Regressor. Default base estimator is DecisionTreeRegressor.
+    '''
     def __init__(self, input_len, output_len, input_channels, output_channels,
+                    estimator = None,
                     n_estimators=10,
                     max_samples=1.0,
                     max_features=1.0,
@@ -77,7 +123,8 @@ class BaggingRegressor(EnsembleBaseClass):
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.ensemble import BaggingRegressor as sklearn_BaggingRegressor
-        self.models = [sklearn_BaggingRegressor(n_estimators=n_estimators,
+        self.models = [sklearn_BaggingRegressor(estimator=estimator,
+                                                n_estimators=n_estimators,
                                                 max_samples=max_samples,
                                                 max_features=max_features,
                                                 bootstrap=bootstrap,
@@ -93,30 +140,23 @@ class GradientBoostingRegressor(EnsembleBaseClass):
                     max_depth=3,
                     min_samples_split=2,
                     min_samples_leaf=1,
-                    min_weight_fraction_leaf=0.0,
                     max_features='sqrt',
-                    subsample=1.0,
                     random_state=0,
-                    verbose=0,
-                    max_leaf_nodes=None,
-                    warm_start=False
                     ):
         super().__init__(input_len, output_len, input_channels, output_channels)
         from sklearn.ensemble import GradientBoostingRegressor as sklearn_GradientBoostingRegressor
         self.models = [sklearn_GradientBoostingRegressor(n_estimators=n_estimators,
-                                                         learning_rate=learning_rate,
-                                                         max_depth=max_depth,
-                                                         min_samples_split=min_samples_split,
-                                                         min_samples_leaf=min_samples_leaf,
-                                                         min_weight_fraction_leaf=min_weight_fraction_leaf,
-                                                         max_features=max_features,
-                                                         subsample=subsample,
-                                                         random_state=random_state,
-                                                         verbose=verbose,
-                                                         max_leaf_nodes=max_leaf_nodes,
-                                                         warm_start=warm_start)
+                                                            learning_rate=learning_rate,
+                                                            max_depth=max_depth,
+                                                            min_samples_split=min_samples_split,
+                                                            min_samples_leaf=min_samples_leaf,
+                                                            max_features=max_features,
+                                                            random_state=random_state,)
                         for _ in range(output_len*output_channels)]
 
+# ------------------------------------------------------------------------------------
+# estimators bnelow should be specified as a list
+# Not reliable yet:
 
 class VotingRegressor(EnsembleBaseClass):
     def __init__(self, input_len, output_len, input_channels, output_channels,
@@ -148,30 +188,7 @@ class StackingRegressor(EnsembleBaseClass):
                         for _ in range(output_len*output_channels)]
 
 
-class ExtraTreesRegressor(EnsembleBaseClass):
-    def __init__(self, input_len, output_len, input_channels, output_channels,
-                    n_estimators=100,
-                    max_depth=None,
-                    min_samples_split=2,
-                    min_samples_leaf=1,
-                    min_weight_fraction_leaf=0.0,
-                    max_features='sqrt',
-                    random_state=0,
-                    n_jobs=1,
-                    verbose=0
-                    ):
-        super().__init__(input_len, output_len, input_channels, output_channels)
-        from sklearn.ensemble import ExtraTreesRegressor as sklearn_ExtraTreesRegressor
-        self.models = [sklearn_ExtraTreesRegressor(n_estimators=n_estimators,
-                                                    max_depth=max_depth,
-                                                    min_samples_split=min_samples_split,
-                                                    min_samples_leaf=min_samples_leaf,
-                                                    min_weight_fraction_leaf=min_weight_fraction_leaf,
-                                                    max_features=max_features,
-                                                    random_state=random_state,
-                                                    n_jobs=n_jobs,
-                                                    verbose=verbose)
-                        for _ in range(output_len*output_channels)]
+
 
 
 

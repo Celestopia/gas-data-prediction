@@ -154,8 +154,8 @@ def load_data(data_path='E:\\科创优才\\实验数据\\天然气锅炉数据1.
             (input_var_indices, output_var_indices)
 
 
-
-def filter_segments(data, condition, min_length=15, min_gap=10): # Note: The implementation of this function is messy, no need to think too much about it, just use it as a black box.
+# Note: The implementation of this function is messy, no need to think too much about it, just use it as a black box.
+def filter_segments(data, condition, min_length=15, min_gap=10):
     '''
     Filter segments of time series data and return a list of segments.
 

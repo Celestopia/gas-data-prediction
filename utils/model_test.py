@@ -7,10 +7,10 @@ class ModelTest:
     def __init__(self, model, dataset,
                     device='cpu'
                     ):
-        self.model=model
+        self.model=model # A neural network model
         self.dataset=dataset
         self.device=device
-        self.Y_true=None # To be set by `predict()` or `get_pred_true_pairs()`
+        self.Y_true=None
         self.Y_pred=None # To be set by `get_pred_true_pairs()`
 
 

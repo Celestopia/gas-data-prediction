@@ -21,13 +21,13 @@ class FitHistory:
     ```
     '''
     def __init__(self):
-        self.num_epochs=0
+        self.num_epochs=0 # The number of epochs that have passed
         self.epoch_time=[]
         self.train_loss=[]
         self.train_metric=[]
         self.val_loss=[]
         self.val_metric=[]
-        self.metadata=None # 用于保存额外信息
+        self.metadata=None # To store extra meta data (if any)
 
     def update(self, epoch_time, train_loss, train_metric, val_loss, val_metric):
         '''
@@ -61,13 +61,16 @@ class FitHistory:
         plt.ylabel('Metric')
         plt.suptitle("Training History")
         plt.legend()
-        plt.tight_layout() # 调整子图间距，防止重叠
+        plt.tight_layout() # Adjust subplot spacing to avoid overlap
         if save_path is not None:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight') # 保存图片
-            print(f'Save training history plot to {save_path}')
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f'Saved training history plot to {save_path}')
         plt.show()
     
     def summary(self):
+        r"""
+        print the summary of the training history.
+        """
         print(f'Number of epochs:  {self.num_epochs}')
         print(f'Training time:     {np.sum(self.epoch_time):.4f}s')
         print(f'Training loss:     {self.train_loss[-1]:.4f}')
