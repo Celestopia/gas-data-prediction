@@ -1,15 +1,14 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from .baseclass import TimeSeriesNN
 
 
 class RNN(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
-    A simple RNN
+    r"""
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
+    A simple RNN  
     pass `bidirectional=True` to use bidirectional RNN
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 hidden_size=16,
                 num_layers=3,
@@ -34,10 +33,10 @@ class RNN(TimeSeriesNN):
 
 
 class LSTM(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    r"""
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
     pass `bidirectional=True` to use bidirectional LSTM
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 hidden_size=16,
                 num_layers=3,
@@ -62,10 +61,10 @@ class LSTM(TimeSeriesNN):
 
 
 class GRU(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    r"""
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
     pass `bidirectional=True` to use bidirectional GRU
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 hidden_size=16,
                 num_layers=3,

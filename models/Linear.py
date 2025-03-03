@@ -1,3 +1,6 @@
+r"""
+Linear neural network models. Note this is different from linear regression models.
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

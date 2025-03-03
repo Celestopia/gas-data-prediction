@@ -3,8 +3,6 @@ import warnings
 
 class GPRBaseClass:
     def __init__(self, input_len, output_len, input_channels, output_channels):
-        from sklearn.gaussian_process import GaussianProcessRegressor as sklearn_GaussianProcessRegressor
-        #self.models = [sklearn_GaussianProcessRegressor(kernel=None, alpha=1e-10, optimizer="fmin_l_bfgs_b") for _ in range(output_len*output_channels)]
         self.input_len = input_len
         self.output_len = output_len
         self.input_channels = input_channels

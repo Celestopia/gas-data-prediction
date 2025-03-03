@@ -4,12 +4,12 @@ import torch.nn.functional as F
 from .baseclass import TimeSeriesNN
 
 
-
 class CNN(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+
     A 3-layer CNN with ReLU activation and max-pooling.
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args, **kwargs): # For compatibility, we allow extra arguments here, but be sure they are not used.
         super().__init__(input_len, output_len, input_channels, output_channels)
 
@@ -39,16 +39,19 @@ class CNN(TimeSeriesNN):
 
 
 class TCN(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+
     Temporal Convolutional Network (TCN)
+
     Model architecture inspired by https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+
     Required: input_channels == output_channels
-    '''
+    """
     class TCNBlock(nn.Module):
-            '''
+            r"""
             (batch_size, L, input_channels) -> (batch_size, L, output_channels)
-            '''
+            """
             def __init__(self, input_channels, output_channels, kernel_size, dilation, dropout):
                 assert input_channels == output_channels, "The number of input and output channels should be equal"
                 super(TCN.TCNBlock, self).__init__()

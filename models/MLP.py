@@ -4,11 +4,10 @@ import torch.nn.functional as F
 from .baseclass import TimeSeriesNN
 
 class MLP(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    r"""
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
     A 3-layer MLP with ReLU activation, max pooling, and dropout.
-    Many parameters
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 dropout=0.2,
                 **kwargs
@@ -38,13 +37,16 @@ class MLP(TimeSeriesNN):
 
 
 class TSMixer(TimeSeriesNN):
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    r"""
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
     A simple TSMixer model with a linear token-mixing layer and channel-mixing layer.
 
-    Reference: arXiv:2303.06053v5, Figure 1
-    '''
+    Reference: arXiv:2303.06053v5, Figure 1; https://github.com/ditschuk/pytorch-tsmixer
+    """
     class MLP_time(nn.Module):
+        r"""
+        (batch_size, input_channels, input_len) -> (batch_size, input_channels, input_len)
+        """
         def __init__(self, input_len, dropout):
             super().__init__()
             self.fc = nn.Linear(input_len, input_len)
@@ -58,10 +60,13 @@ class TSMixer(TimeSeriesNN):
             return x
 
     class MLP_feature(nn.Module):
-        def __init__(self, input_channels, dropout):
+        r"""
+        (batch_size, input_len, input_channels) -> (batch_size, input_len, output_channels)
+        """
+        def __init__(self, input_channels, output_channels, ff_dim, dropout):
             super().__init__()
-            self.fc1 = nn.Linear(input_channels, input_channels)
-            self.fc2 = nn.Linear(input_channels, input_channels)
+            self.fc1 = nn.Linear(input_channels, ff_dim)
+            self.fc2 = nn.Linear(ff_dim, output_channels)
             self.relu = nn.ReLU()
             self.dropout = nn.Dropout(p=dropout)
 
@@ -73,13 +78,42 @@ class TSMixer(TimeSeriesNN):
             x = self.dropout(x)
             return x
 
+    class TimeBatchNorm2d(nn.BatchNorm1d):
+        r"""
+        Copyed from https://github.com/ditschuk/pytorch-tsmixer/blob/main/torchtsmixer/layers.py
+
+        A batch normalization layer that normalizes over the last two dimensions of a sequence in PyTorch, mimicking Keras behavior.
+
+        This class extends nn.BatchNorm1d to apply batch normalization across time and
+        feature dimensions.
+        """
+        def __init__(self, normalized_shape: tuple[int, int]):
+            num_time_steps, num_channels = normalized_shape
+            super().__init__(num_channels * num_time_steps)
+            self.num_time_steps = num_time_steps
+            self.num_channels = num_channels
+
+        def forward(self, x):
+            assert x.ndim ==3, "Input must have 3 dimensions (N, input_len, input_channels)"
+            x = x.reshape(x.shape[0], -1, 1) # Reshaping input to combine time and feature dimensions for normalization
+            x = super().forward(x) # Applying batch normalization
+            x = x.reshape(x.shape[0], self.num_time_steps, self.num_channels) # Reshaping back to original dimensions (N, S, C)
+
+            return x
+
     class MixerLayer(nn.Module):
-        def __init__(self, input_len, input_channels, dropout):
+        def __init__(self, input_len, input_channels, output_channels, ff_dim, dropout):
             super().__init__()
             self.mlp_time = TSMixer.MLP_time(input_len=input_len, dropout=dropout)
-            self.mlp_feature = TSMixer.MLP_feature(input_channels=input_channels, dropout=dropout)
-            self.bn1 = nn.BatchNorm2d(input_len)
-            self.bn2 = nn.BatchNorm2d(input_channels)
+            self.mlp_feature = TSMixer.MLP_feature(input_channels=input_channels, output_channels=output_channels, ff_dim=ff_dim, dropout=dropout)
+            self.bn1 = TSMixer.TimeBatchNorm2d(normalized_shape=(input_len, input_channels))
+            self.bn2 = TSMixer.TimeBatchNorm2d(normalized_shape=(input_len, input_channels))
+            
+            self.projection = (
+                nn.Linear(input_channels, output_channels)
+                if input_channels != output_channels
+                else nn.Identity()
+            )
 
         def forward(self, x):
             # Time Mixing
@@ -90,24 +124,38 @@ class TSMixer(TimeSeriesNN):
             x = x + res
             # Feature Mixing
             res = self.bn2(x)
-            res = self.mlp_feature(res)
-            x = x + res
+            res = self.mlp_feature(res) # (batch_size, input_len, input_channels) -> (batch_size, input_len, output_channels)
+            x = self.projection(x) + res
             return x
-
 
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                     dropout=0.2,
                     n_mixer_layers=3,
+                    ff_dim=64,
                     **kwargs
                     ): # For compatibility, we allow extra arguments here, but be sure they are not used.
+        r"""
+        :param ff_dim: Dimension of the hidden layer in feature MLP.
+        """
         super().__init__(input_len, output_len, input_channels, output_channels)
-        self.mixer_layers=nn.ModuleList([TSMixer.MixerLayer(input_len, input_channels, dropout=dropout) for _ in range(n_mixer_layers)])
+        
+        # For first `n_mixer_layers-1` layers, set output_channels=input_channels; only for the last mixer layer, set output_channels=output_channels.
+        input_chs = [input_channels for _ in range(n_mixer_layers)] # number of input channels for each mixer layer
+        output_chs = [input_channels for _ in range(n_mixer_layers-1)] + [output_channels] # number of output channels for each mixer layer
+        self.mixer_layers=nn.ModuleList([TSMixer.MixerLayer(input_len=input_len,
+                                                            input_channels=input_ch,
+                                                            output_channels=output_ch,
+                                                            ff_dim=ff_dim,
+                                                            dropout=dropout,
+                                                            ) for input_ch, output_ch in zip(input_chs, output_chs)])
         self.temporal_projection = nn.Linear(input_len, output_len)
 
     def forward(self, x):
         for layer in self.mixer_layers:
-            x = layer(x)
-        x = self.temporal_projection(x)
+            x = layer(x) # (batch_size, input_len, input_channels) -> (batch_size, input_len, output_channels)
+        x = x.transpose(1, 2) # (batch_size, input_len, output_channels) -> (batch_size, output_channels, input_len)
+        x = self.temporal_projection(x) # (batch_size, output_channels, input_len) -> (batch_size, output_channels, output_len)
+        x = x.transpose(1, 2) # (batch_size, output_channels, output_len) -> (batch_size, output_len, output_channels)
         return x
 
 

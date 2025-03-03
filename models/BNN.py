@@ -8,9 +8,9 @@ from blitz.utils import variational_estimator # Need to install blitz-bayesian-p
 
 @variational_estimator
 class BNN_conv1d(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 kernel_size=3,
                 padding=1,
@@ -42,12 +42,12 @@ class BNN_conv1d(TimeSeriesNN):
         return x
 
     def predict(self, input: torch.Tensor,
-                num_experiments= 100 # 对于同一输入的预测次数
+                num_experiments= 100 # the number of experiments to run for each input
                 ):
-        '''
-        input: (batch_size, input_len, input_channels)
+        r"""
+        input: (batch_size, input_len, input_channels)  
         Use Monte Carlo method to predict on the same input, and return the mean and variance of the predicted results.
-        '''
+        """
         import tqdm
         assert input.dim()==3
         self.eval()

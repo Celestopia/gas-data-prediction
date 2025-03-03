@@ -9,10 +9,10 @@ from layers.attention_layers import AttentionLayer, ProbAttention, ReformerLayer
 
 
 class Transformer(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
     An Encoder-only vanilla Transformer
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 num_layers=6, # Number of encoder layers
                 d_model=64, # dimension of hidden layer
@@ -44,10 +44,10 @@ class Transformer(TimeSeriesNN):
 
 
 class iTransformer(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
     An Encoder-only iTransformer
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args, 
                 num_layers=6, # Number of encoder layers
                 d_model=64, # dimension of hidden layer
@@ -81,10 +81,10 @@ class iTransformer(TimeSeriesNN):
 
 
 class PatchTST(TimeSeriesNN):
-    '''
+    r"""
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
     An Encoder-only PatchTST
-    '''
+    """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 num_layers=6, # Number of encoder layers
                 d_model=64, # dimension of hidden layer
@@ -120,7 +120,7 @@ class PatchTST(TimeSeriesNN):
 
 # 暂时能跑，不要动 # can run, don't modify
 class Reformer(TimeSeriesNN):
-    """
+    r"""
     Reformer with O(LlogL) complexity
     Paper link: https://openreview.net/forum?id=rkgNKkHtvB
     Source: https://github.com/thuml/iTransformer/blob/main/model/Reformer.py
@@ -188,7 +188,7 @@ class Reformer(TimeSeriesNN):
 
 # 暂时能跑，不要动 # can run, don't modify
 class Informer(TimeSeriesNN):
-    """
+    r"""
     Informer with Propspare attention in O(LlogL) complexity
     Paper link: https://ojs.aaai.org/index.php/AAAI/article/view/17325/17132
     Source: https://github.com/thuml/iTransformer/blob/main/model/Informer.py

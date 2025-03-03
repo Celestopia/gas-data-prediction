@@ -5,7 +5,7 @@ import time
 import tqdm
 
 
-def train(MODEL, train_loader, val_loader, optimizer,
+def train(model, train_loader, val_loader, optimizer,
             loss_func=nn.MSELoss(),
             metric_func=nn.L1Loss(),
             num_epochs=10,
@@ -14,6 +14,19 @@ def train(MODEL, train_loader, val_loader, optimizer,
             ):
     """
     Train a model using the given data loaders and settings.
+
+    :param model: The pytorch model to be trained.
+    :param train_loader: The data loader for the training set.
+    :param val_loader: The data loader for the validation set.
+    :param optimizer: The optimizer to be used for training.
+    :param loss_func: The loss function to be used for training.
+    :param metric_func: The metric function to be used for evaluation.
+    :param num_epochs: The maximum number of epochs to train. Note that early stopping may be triggered.
+    :param device: The device to be used for training. options: ['cpu', 'cuda'].
+    :param verbose: The level of verbosity. options: [0, 1]. 0: no output, 1: output each epoch.
+
+    :return (epoch_time_list, train_loss_list, train_metric_list, val_loss_list, val_metric_list):
+    A tuple of lists containing the training time, training loss, training metric, validation loss, and validation metric for each epoch.
     """
     epoch_time_list=[]
     train_loss_list=[]
@@ -28,11 +41,11 @@ def train(MODEL, train_loader, val_loader, optimizer,
         val_loss, val_metric = 0.0, 0.0
 
         # Train
-        MODEL.train() # Switch to training mode
+        model.train() # Switch to training mode
         for inputs, targets in train_loader: # Traverse the training set in batches
             inputs, targets = inputs.to(device), targets.to(device) # Move data to GPU (if available)
             optimizer.zero_grad() # Empty the gradient
-            outputs = MODEL(inputs)
+            outputs = model(inputs)
             loss = loss_func(outputs, targets)
             metric = metric_func(outputs, targets)
             loss.backward() # Calculate gradients
@@ -40,12 +53,12 @@ def train(MODEL, train_loader, val_loader, optimizer,
             train_loss+=loss.item()
             train_metric+=metric.item()
 
-        # Test
-        MODEL.eval() # Switch to evaluation mode
+        # Validate
+        model.eval() # Switch to evaluation mode
         with torch.no_grad():
             for inputs, targets in val_loader: # Traverse the validation set in batches
                 inputs, targets = inputs.to(device), targets.to(device) # Move data to GPU (if available)
-                outputs = MODEL(inputs)
+                outputs = model(inputs)
                 loss = loss_func(outputs, targets)
                 metric=metric_func(outputs, targets)
                 val_loss+=loss.item()

@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 
 class FitHistory:
-    '''
-    Fit history class to record the training history of a model.
+    r"""
+    Fit history class to record the training history of a model (typically neural networks).
 
     Example usage:
     ```
@@ -19,7 +19,7 @@ class FitHistory:
     history.plot()
     history.summary()
     ```
-    '''
+    """
     def __init__(self):
         self.num_epochs=0 # The number of epochs that have passed
         self.epoch_time=[]
@@ -30,14 +30,13 @@ class FitHistory:
         self.metadata=None # To store extra meta data (if any)
 
     def update(self, epoch_time, train_loss, train_metric, val_loss, val_metric):
-        '''
-        Parameters:
-        - epoch_time: list. The time of training each epoch.
-        - train_loss: list. The loss of training each epoch.
-        - train_metric: list. The metric of training each epoch.
-        - val_loss: list. The loss of validation each epoch.
-        - val_metric: list. The metric of validation each epoch.
-        '''
+        r"""
+        :param epoch_time: list. The time of training each epoch.
+        :param train_loss: list. The loss of training each epoch.
+        :param train_metric: list. The metric of training each epoch.
+        :param val_loss: list. The loss of validation each epoch.
+        :param val_metric: list. The metric of validation each epoch.
+        """
         self.num_epochs+=len(epoch_time)
         self.epoch_time.extend(epoch_time)
         self.train_loss.extend(train_loss)

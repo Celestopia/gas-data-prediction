@@ -1,6 +1,9 @@
+r"""
+未与其它模型对齐格式，暂时没用
+"""
 import numpy as np
 
-class Identical():
+class Identical:
     '''
     (N, input_len, n_vars) -> (N, output_len, n_vars)
     Use the last time element of the input sequence as the predicted value of the output sequence.
@@ -19,7 +22,7 @@ class Identical():
         output = np.tile(x_last_step, reps=(1, self.output_len, 1)) # (N, output_len, n_vars)
         return output
 
-class ExponentialMovingAverage():
+class ExponentialMovingAverage:
     '''
     (N, input_len, n_vars) -> (N, output_len, n_vars)
     Use the exponential moving average of the input sequence as the predicted value of the output sequence.
@@ -47,55 +50,5 @@ class ExponentialMovingAverage():
         output = np.tile(last_step_ema, reps=(1, self.output_len, 1)) # (N, output_len, n_vars)
         return output
 
-class ARIMA():
+class ARIMA:
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class SVR():#不能用，待完善
-    '''
-    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
-    Support Vector Regression
-    For each multivariate time series, flatten it to fit SVR's input requirements.
-    '''
-    def __init__(self, input_len, output_len, input_channels, output_channels,
-                hidden_dim=64,
-                kernel='rbf',
-                C=1.0,
-                epsilon=0.1,
-                ):
-        try:
-            from sklearn.svm import SVR as sklearn_SVR
-        except ImportError:
-            raise ImportError("sklearn is required for SVR module. Please install it using 'pip install scikit-learn' or 'conda install scikit-learn'")
-        super().__init__(input_len, output_len, input_channels, output_channels)
-        self.fc1=nn.Linear(input_len*input_channels,hidden_dim)
-        self.fc2=nn.Linear(hidden_dim,output_len*output_channels)
-        self.svr=sklearn_SVR(kernel=kernel, C=C, epsilon=epsilon)
-
-
-    def forward(self, x, y=None): # x: (batch_size, input_len, input_channels)
-        x = x.view(x.size(0), -1) # (batch_size, input_len, input_channels) -> (batch_size, input_len*input_channels)
-        x = self.fc1(x) # (batch_size, input_len*input_channels) -> (batch_size, hidden_dim)
-        if y is not None:
-            self.svr.fit(np.array(x), np.array(y)) # fit SVR model
-        x = torch.Tensor(self.svr.predict(np.array(x))) # (batch_size, hidden_dim) -> (batch_size, hidden_dim)
-        x = self.fc2(x) # (batch_size, hidden_dim) -> (batch_size, output_len*output_channels)
-        x = x.view(x.shape[0], self.output_len, self.output_channels) # (batch_size, output_len*output_channels) -> (batch_size, output_len, output_channels)
-        return x
