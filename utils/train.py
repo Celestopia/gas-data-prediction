@@ -15,18 +15,20 @@ def train(model, train_loader, val_loader, optimizer,
     """
     Train a model using the given data loaders and settings.
 
-    :param model: The pytorch model to be trained.
-    :param train_loader: The data loader for the training set.
-    :param val_loader: The data loader for the validation set.
-    :param optimizer: The optimizer to be used for training.
-    :param loss_func: The loss function to be used for training.
-    :param metric_func: The metric function to be used for evaluation.
-    :param num_epochs: The maximum number of epochs to train. Note that early stopping may be triggered.
-    :param device: The device to be used for training. options: ['cpu', 'cuda'].
-    :param verbose: The level of verbosity. options: [0, 1]. 0: no output, 1: output each epoch.
+    Args:
+        model: The pytorch model to be trained.
+        train_loader: The data loader for the training set.
+        val_loader: The data loader for the validation set.
+        optimizer: The optimizer to be used for training.
+        loss_func: The loss function to be used for training.
+        metric_func: The metric function to be used for evaluation.
+        num_epochs: The **maximum number** of epochs to train. Note that early stopping may be triggered.
+        device: The device to be used for training. options: ['cpu', 'cuda'].
+        verbose: The level of verbosity. options: [0, 1]. 0: no output, 1: output each epoch.
 
-    :return (epoch_time_list, train_loss_list, train_metric_list, val_loss_list, val_metric_list):
-    A tuple of lists containing the training time, training loss, training metric, validation loss, and validation metric for each epoch.
+    Returns:
+        (epoch_time_list, train_loss_list, train_metric_list, val_loss_list, val_metric_list) (tuple of list):
+        - A tuple of lists containing the training time, training loss, training metric, validation loss, and validation metric for each epoch.
     """
     epoch_time_list=[]
     train_loss_list=[]
@@ -97,7 +99,8 @@ def train(model, train_loader, val_loader, optimizer,
             if average_val_loss>0.95*average_val_loss_prev:
                 print("Early stopping at epoch {}.".format(epoch+1))
                 break
-
-    print(f'Total Time: {total_time:.4f}s')
+    
+    if verbose==1:
+        print(f'Total Time: {total_time:.4f}s')
 
     return (epoch_time_list, train_loss_list, train_metric_list, val_loss_list, val_metric_list)

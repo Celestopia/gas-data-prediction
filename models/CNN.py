@@ -5,7 +5,7 @@ from .baseclass import TimeSeriesNN
 
 
 class CNN(TimeSeriesNN):
-    r"""
+    """
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
 
     A 3-layer CNN with ReLU activation and max-pooling.
@@ -38,8 +38,53 @@ class CNN(TimeSeriesNN):
         return x
 
 
+
+class CNNLSTM(TimeSeriesNN):
+    """
+    (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
+    
+    CNN feature extraction followed by LSTM temporal processing
+    """
+    def __init__(self, input_len, output_len, input_channels, output_channels,
+                    lstm_hidden_size=128,
+                    num_lstm_layers=2, *args, **kwargs):
+        super().__init__(input_len, output_len, input_channels, output_channels)
+        
+        self.cnn = nn.Sequential(
+            nn.Conv1d(input_channels, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(16, 32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2),
+            nn.Conv1d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=2)
+        )
+        self.lstm = nn.LSTM(
+            input_size=64,
+            hidden_size=lstm_hidden_size,
+            num_layers=num_lstm_layers,
+            batch_first=True,
+            dropout=0.2 if num_lstm_layers > 1 else 0
+        )
+        reduced_length = input_len // 2 // 2 // 2
+        self.fc = nn.Linear(reduced_length * lstm_hidden_size, output_channels * output_len)
+
+    def forward(self, x):
+        x = x.permute(0, 2, 1)
+        x = self.cnn(x)
+        x = x.permute(0, 2, 1)
+        x, (hn, cn) = self.lstm(x)
+        x = x.contiguous().view(x.size(0), -1)
+        x = self.fc(x)
+        x = x.view(-1, self.output_len, self.output_channels) # (batch_size, output_channels*output_len) -> (batch_size, output_len, output_channels)
+        return x
+
+
+
 class TCN(TimeSeriesNN):
-    r"""
+    """
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)
 
     Temporal Convolutional Network (TCN)
@@ -112,3 +157,12 @@ class TCN(TimeSeriesNN):
         x = self.fc(x) # (batch_size, output_channels*(input_len/4)) -> (batch_size, output_len*output_channels)
         x = x.view(-1, self.output_len, self.output_channels) # (batch_size, output_len*output_channels) -> (batch_size, output_len, output_channels)
         return x
+
+
+if __name__ == '__main__':
+    # Test the CNN model
+    model = CNNLSTM(input_len=100, output_len=10, input_channels=5, output_channels=4)
+    x = torch.randn(32, 100, 10)
+    y = model(x)
+    print(y.shape) # (1, 1, 1)
+

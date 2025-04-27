@@ -156,8 +156,8 @@ def save_to_xlsx(data, xlsx_save_path):
     print(f"Summary file saved to {xlsx_save_path}")
 
 if __name__ == '__main__':
-    directory = r"E:\PythonProjects\gas-data-prediction\results20250302"
-    xlsx_save_path = '20250302_summary.xlsx'
+    directory = r"E:\PythonProjects\gas-data-prediction\results20250330"
+    xlsx_save_path = '20250330_summary.xlsx'
     json_paths = get_json_paths(directory)
     data = extract_data_from_json(json_paths)
     save_to_xlsx(data, xlsx_save_path)

@@ -1,6 +1,4 @@
-r"""
-Component functions of the main function. We break the main function into several components to simplify it.
-"""
+"""Component functions of the main function. We break the main function into several components to simplify it."""
 import numpy as np
 import matplotlib
 import pandas as pd
@@ -15,12 +13,41 @@ warnings.filterwarnings("ignore", category=UserWarning) # To filter the warning 
 
 
 def get_dataset(args, logger):
-    r"""
+    """
     Get everything needed of the dataset.
+    
+    Notations:
+    - X_train, Y_train, X_test, Y_test:
+        - Training/testing inputs and outputs.
+        - Shape: (N, seq_len, n_vars).
+    - X_train_grouped, X_test_grouped, Y_train_grouped, Y_test_grouped:
+        - List of numpy arrays of shape (N_i, seq_len, n_vars).
+        - Each list item contains samples from a same series.
+        - For example, the original data may have 8 series, each with 500 time steps and 6 variables.
+            Assume the input and output length are 10 and 5, respectively, and the overlap is 1; assume 7 series are used for training.
+            Then, `X_train_grouped` is a list of 7 numpy arrays items, each of shape (50,10,6).
+        - Note that the number of total time steps (N_i*seq_len) in each item may vary, since different series may have different lengths.
+            In this case, `X_train_grouped` can be expressed as [(12,50,6), (15,50,6), (34,50,6), (19,50,6), (27,50,6)], for instance.
+    - input_var_mean, output_var_mean: 1-d numpy array. Mean of input and output variables.
+    - input_var_std_dev, output_var_std_dev: 1-d numpy array. Standard deviation of input and output variables.
+    - input_var_indices, output_var_indices: List of int. Column indices of input and output variables.
+    - input_var_units, output_var_units: List of strings. Units of input and output variables.
+
+    Returns:
+        8-Tuple of
+        - (X_train, Y_train)
+        - (X_test, Y_test)
+        - (X_train_grouped, Y_train_grouped)
+        - (X_test_grouped, Y_test_grouped)
+        - (input_var_mean, output_var_mean)
+        - (input_var_std_dev, output_var_std_dev)
+        - (input_var_indices, output_var_indices)
+        - (input_var_units, output_var_units)
     """
 
     # Load data
     from data_provider.data_reading import load_data
+    #from data_provider.data_reading2 import load_data
 
     DATA, var_names, var_units = load_data(args.data_path)
 
@@ -34,8 +61,17 @@ def get_dataset(args, logger):
     from data_provider.data_preprocessing import TSDL
 
     (train_dataset, test_dataset), (train_indices, test_indices) =TSDL.train_test_split(TSDL(DATA), train_ratio=0.8, test_ratio=0.2)
+    
+    if args.transform:
+        from functools import partial
+        from utils.transform import transform
+        var_idx = var_names.index(args.transform_var_name)
+        transform_func = partial(transform, slope=args.transform_slope, l_threshold=args.transform_l_threshold, u_threshold=args.transform_u_threshold, var_idx=var_idx)
+        train_dataset=TSDL.apply(train_dataset, transform_func)
+        test_dataset=TSDL.apply(test_dataset, transform_func)
 
-    var_mean, var_std_dev = TSDL.get_mean(train_dataset), TSDL.get_std_dev(train_dataset)
+
+    var_mean, var_std_dev = train_dataset.mean(), train_dataset.std()
     input_var_mean, input_var_std_dev = var_mean[input_var_indices], var_std_dev[input_var_indices]
     output_var_mean, output_var_std_dev = var_mean[output_var_indices], var_std_dev[output_var_indices]
 
@@ -44,10 +80,12 @@ def get_dataset(args, logger):
 
     X_train_grouped, Y_train_grouped = TSDL.time_series_slice(train_dataset_standardized, args.input_len, args.output_len,
                                                               overlap=args.overlap,
+                                                              pool_size=args.pool_size,
                                                               input_var_indices=input_var_indices,
                                                               output_var_indices=output_var_indices)
     X_test_grouped, Y_test_grouped = TSDL.time_series_slice(test_dataset_standardized, args.input_len, args.output_len,
                                                             overlap=args.overlap,
+                                                            pool_size=args.pool_size,
                                                             input_var_indices=input_var_indices,
                                                             output_var_indices=output_var_indices)
 
@@ -80,9 +118,7 @@ def get_dataset(args, logger):
 
 
 def model_building_and_training(args, nargs, X_train, Y_train, logger):
-    r"""
-    Build, train, and save a model.
-    """
+    """Build, train, and save a model."""
     model_name=args.model_name
     model_type=nargs.model_type
     
@@ -98,13 +134,14 @@ def model_building_and_training(args, nargs, X_train, Y_train, logger):
         import torch.optim as optim
         import torch.nn as nn
         from models.RNN import RNN, LSTM, GRU
-        from models.CNN import CNN, TCN
+        from models.CNN import CNN, CNNLSTM, TCN
         from models.MLP import MLP
         from models.transformer import Transformer, iTransformer, PatchTST, Reformer, Informer
         from models.Linear import LLinear, DLinear, NLinear
         model_dict={
             'MLP': MLP,
             'CNN': CNN,
+            'CNNLSTM': CNNLSTM,
             'TCN': TCN,
             'RNN': RNN,
             'LSTM': LSTM,
@@ -201,129 +238,3 @@ def model_building_and_training(args, nargs, X_train, Y_train, logger):
 
     return model
 
-def model_evaluation(args, nargs, Exp, X_test_grouped, Y_test_grouped, logger):
-    with_Tensor=True if nargs.model_type=='NN' else False
-    Y_pred, Y_true = Exp.get_pred_true_series_pairs(X_test_grouped[0], Y_test_grouped[0], with_Tensor=with_Tensor) # visualize on the first sample of test set
-    prediction_info=Exp.get_prediction_info(X_test_grouped, Y_test_grouped,
-                                            args.output_var_names, nargs.output_var_units, nargs.output_var_mean, nargs.output_var_std_dev,
-                                            with_Tensor=with_Tensor)
-    return prediction_info, Y_true, Y_pred
-
-def save_plots(args, nargs, Exp, Y_pred, Y_true):
-    r"""
-    Save four plots:
-    - pred_std: standardized prediction
-    - pred: rescaled prediction
-    - res_std: standardized residual
-    - res: rescaled residual
-    """
-    for plot_name, (p,r) in zip(["pred_std","pred","res_std","res"], [(0,0), (0,1), (1,0), (1,1)]):
-        Exp.plot_all_predictions(Y_pred, Y_true,
-                                output_var_names=args.output_var_names,
-                                output_var_units=nargs.output_var_units,
-                                output_var_mean=nargs.output_var_mean,
-                                output_var_std_dev=nargs.output_var_std_dev,
-                                plot_residual=p,
-                                rescale=r,
-                                figsize=args.figsize,
-                                save_path='{}/{}/{}_{}.png'.format(
-                                    args.result_directory,
-                                    nargs.subdirectory,
-                                    args.model_name,
-                                    plot_name))
-    return
-
-def save_result(args, nargs, prediction_info):
-    r"""
-    Save model experiment information to result.json
-    """
-    hyperparameter_dict = {}
-
-    if nargs.model_type=='NN':
-        hyperparameter_dict = {
-            "optimizer_name": args.optimizer_name,
-            "learning_rate": args.learning_rate,
-            "batch_size": args.batch_size,
-            "num_epochs": args.num_epochs,
-        }
-    elif nargs.model_type=='SVR':
-        hyperparameter_dict = {
-            "C": args.C,
-            "epsilon": args.epsilon,
-            "nu": args.nu,
-            "kernel": args.kernel,
-            "degree": args.degree,
-            "tol": args.tol,
-            "max_iter": args.max_iter,
-        }
-    elif nargs.model_type=='LR':
-        hyperparameter_dict = {
-            "l1_ratio": args.l1_ratio,
-            "l2_ratio": args.l2_ratio,
-        }
-    elif nargs.model_type=='Ensemble':
-        hyperparameter_dict = {
-            "n_estimators": args.n_estimators,
-            "max_depth": args.max_depth,
-            "min_samples_split": args.min_samples_split,
-            "min_samples_leaf": args.min_samples_leaf,
-            "max_features": args.max_features,
-            "ensemble_learning_rate": args.ensemble_learning_rate,
-        }
-    elif nargs.model_type=='GPR':
-        hyperparameter_dict = {
-            "default": "default",
-        }
-
-    result_dict = {
-        "time_string": nargs.time_string,
-        "model_name": args.model_name,
-        "dataset_info": {
-            "input_len": args.input_len,
-            "output_len": args.output_len,
-            "input_channels": len(args.input_var_names),
-            "output_channels": len(args.output_var_names),
-            "overlap": args.overlap,
-            "input_var_names": args.input_var_names,
-            "output_var_names": args.output_var_names,
-        },
-        "prediction_info": prediction_info,
-        "hyperparameters": hyperparameter_dict,
-        "seed": args.seed,
-    }
-
-    save_path = os.path.join(args.result_directory, nargs.subdirectory, 'result.json')
-    with open(save_path, 'w') as f:
-        json.dump(result_dict, f, indent=4)
-    return
-
-def save_objects(args, nargs, model, Y_true, Y_pred):
-    """
-    Save the model and experiment objects as a .pkl file, in order that they can be loaded later for further analysis or visualization
-    """
-    objects_pkl_save_path = os.path.join(args.result_directory, nargs.subdirectory, 'objects.pkl')
-    objects_pkl_dict = {
-        "model": model,
-        "Y_pred": Y_pred,
-        "Y_true": Y_true,
-
-        "input_var_names": args.input_var_names,
-        "input_var_units": nargs.input_var_units,
-        "input_var_mean": nargs.input_var_mean,
-        "input_var_std_dev": nargs.input_var_std_dev,
-
-        "output_var_names": args.output_var_names,
-        "output_var_mean": nargs.output_var_mean,
-        "output_var_std_dev": nargs.output_var_std_dev,
-        "output_var_units": nargs.output_var_units,
-        
-        "args": args,
-        "nargs": nargs,
-
-        "Metadata":
-        """To reload the objects, create a python script under the result saving directory, and use the following code:\nimport pickle\nobjects_pkl_save_path = "your/path/to/the/file.pkl"\nobject_pkl_dict = pickle.load(open(objects_pkl_save_path, 'rb'))"""
-    }
-    with open(objects_pkl_save_path, 'wb') as f:
-        pickle.dump(objects_pkl_dict, f) # Save the result dictionary
-        print(f"Saved objects pkl file to {objects_pkl_save_path}")
-    return

@@ -1,14 +1,20 @@
 import logging
+import sys
+
 
 def get_logger(log_file_path="training.log"):
-    r"""
-    Return a logger object to record information in the console and log file.
+    """
+    Return a logger object to record information in a log file.
 
-    :param log_file_path (str, optional): The path of the log file, where logs will be saved..
+    Args:
+        log_file_path (str, optional): The path of the log file, where logs will be saved.
+
+    Returns:
+        logger (logging.Logger): A logger object to record information in a log file.
 
     Example Usage:
     ```
-    logger = get_logger()
+    logger = get_logger('log.log')
     logger.debug("This is a debug message")
     logger.info("This is an info message")
     logger.error("This is an error message")
@@ -24,7 +30,7 @@ def get_logger(log_file_path="training.log"):
     file_handler.setLevel(logging.INFO)
 
     # Create and set a StreamHandler (output to console)
-    console_handler = logging.StreamHandler()
+    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
 
     # Create Formatter
@@ -41,5 +47,14 @@ def get_logger(log_file_path="training.log"):
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
     
+    #sys.stdout = StreamToLogger(logger, logging.INFO)
+    #sys.stderr = StreamToLogger(logger, logging.ERROR)
+
     return logger
 
+
+def close_logger(logger):
+    """Close loggers and free up resources (If not, handlers in different runs can overlap.)"""
+    for handler in logger.handlers[:]:
+        handler.close()
+        logger.removeHandler(handler)

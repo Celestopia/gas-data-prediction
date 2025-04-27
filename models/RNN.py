@@ -4,10 +4,10 @@ from .baseclass import TimeSeriesNN
 
 
 class RNN(TimeSeriesNN):
-    r"""
+    """
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
-    A simple RNN  
-    pass `bidirectional=True` to use bidirectional RNN
+    
+    A simple RNN. Pass `bidirectional=True` to use bidirectional RNN
     """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 hidden_size=16,
@@ -33,12 +33,13 @@ class RNN(TimeSeriesNN):
 
 
 class LSTM(TimeSeriesNN):
-    r"""
+    """
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
-    pass `bidirectional=True` to use bidirectional LSTM
+    
+    Pass `bidirectional=True` to use bidirectional LSTM
     """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
-                hidden_size=16,
+                hidden_size=128,
                 num_layers=3,
                 bidirectional=False,
                 **kwargs
@@ -61,9 +62,10 @@ class LSTM(TimeSeriesNN):
 
 
 class GRU(TimeSeriesNN):
-    r"""
+    """
     (batch_size, input_len, input_channels) -> (batch_size, output_len, output_channels)  
-    pass `bidirectional=True` to use bidirectional GRU
+    
+    Pass `bidirectional=True` to use bidirectional GRU
     """
     def __init__(self, input_len, output_len, input_channels, output_channels, *args,
                 hidden_size=16,
